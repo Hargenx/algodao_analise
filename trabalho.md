@@ -3,8 +3,8 @@
 ## **Introdução**
 
 - O cultivo de algodão desempenha um papel fundamental na economia agrícola do Brasil.
-- Este projeto analisa os dados históricos de plantio e condições climáticas, identificando padrões e oportunidades de melhoria.
-- **Foco:** Aplicar práticas de reprodutibilidade, replicabilidade e proveniência para garantir resultados robustos e confiáveis.
+- Este projeto combina ciência de dados com análises climáticas para identificar padrões no plantio de algodão.
+- **Foco:** Assegurar resultados robustos com práticas de reprodutibilidade, replicabilidade e proveniência.
 
 ---
 
@@ -12,87 +12,90 @@
 
 - Identificar **melhores períodos e regiões** para o plantio de algodão no Brasil.
 - Determinar **fatores climáticos** que mais influenciam a área plantada.
-- **Garantir a validade científica** por meio de técnicas rigorosas de análise de dados.
+- **Garantir a validade científica** por meio de uma pipeline automatizada e transparente.
 
 ---
 
 ## **Hipótese**
 
-- **Hipótese central:** Fatores climáticos, como temperatura média e radiação solar, têm forte correlação com o aumento na área plantada de algodão.
-- Regiões específicas apresentam condições favoráveis que podem ser otimizadas para melhorar a produtividade.
+- **Hipótese central:** Fatores climáticos, como temperatura média e radiação solar, apresentam forte correlação com a produtividade no cultivo de algodão.
+- Determinadas regiões e períodos apresentam condições favoráveis que podem ser estrategicamente exploradas.
 
 ---
 
 ## **Justificativa**
 
-- A análise baseada em dados históricos permite:
-  - Tomada de decisões **informadas e estratégicas**.
-  - Otimização de recursos agrícolas.
-  - Redução de riscos climáticos.
-- O projeto promove boas práticas de ciência de dados, incluindo **documentação rigorosa e análise transparente**.
+- A utilização de dados históricos e climáticos permite:
+  - Tomadas de decisões **baseadas em evidências**.
+  - Otimização no uso de recursos agrícolas.
+  - Prevenção de riscos climáticos associados ao cultivo.
+- **Impacto:** Promover a ciência aberta com documentação detalhada e resultados confiáveis.
 
 ---
 
 ## **Implementação**
 
-1. **Coleta de Dados:**
-   - Dados históricos do plantio de algodão.
-   - Dados meteorológicos regionais e sazonais.
-   - Proveniência garantida pela documentação de fontes e etapas.
+1. **Estrutura do Projeto**
+   - Arquivos principais:
+     - `Dockerfile`: Containerização para replicabilidade.
+     - `requirements.txt`: Dependências usadas, incluindo:
+       - `pandas`, `geopandas`, `matplotlib`, `seaborn`, `streamlit`.
+     - Scripts:
+       - `app.py`: Interface interativa.
+       - `data_cleaning.py`, `analysis.py`, `visualization.py`: Processamento e análises.
 
-2. **Limpeza e Transformação:**
-   - Normalização dos datasets.
-   - Adição de coordenadas geográficas às regiões.
-   - Controle rigoroso de valores faltantes e outliers.
+2. **Pipeline**
+   - **Coleta:** Dados de plantio e meteorológicos.
+   - **Limpeza e Transformação:**
+     - Normalização dos datasets.
+     - Adição de coordenadas geográficas.
+     - Controle de valores ausentes e inconsistentes.
+   - **Análise:**
+     - Identificação de padrões sazonais e regionais.
+     - Avaliação da influência climática.
+   - **Visualização:**
+     - Mapas geoespaciais.
+     - Gráficos interativos de correlação.
 
-3. **Análise de Dados:**
-   - Identificação de padrões sazonais.
-   - Avaliação da influência climática por meio de correlações.
-   - Visualizações interativas e mapas geoespaciais.
-
-4. **Ferramentas Utilizadas:**
-   - Python (pandas, geopandas, matplotlib, seaborn, plotly).
-   - Streamlit para painéis interativos.
-   - Reprodutibilidade garantida com scripts documentados.
+3. **Ferramentas**
+   - Linguagem: **Python**.
+   - Visualizações: `matplotlib`, `seaborn`, `plotly`.
+   - Integração: **Streamlit**.
 
 ---
 
 ## **Resultados**
 
-1. **Tendências sazonais:**
-   - Gráficos de temperatura média por estação ao longo dos anos.
-   - Identificação dos meses ideais para o plantio.
+1. **Tendências Sazonais**
+   - Gráficos demonstram que primavera e verão são ideais para plantio.
 
-2. **Regiões promissoras:**
-   - Mapa geoespacial das melhores regiões para plantio, com foco no Brasil.
-   - Integração de dados regionais com coordenadas precisas.
+2. **Regiões Promissoras**
+   - Mapa interativo destaca Nordeste e Centro-Oeste.
 
-3. **Fatores climáticos:**
-   - Temperatura média e máxima apresentam maior correlação positiva com a área plantada.
-   - Ventos médios têm impacto negativo.
+3. **Fatores Climáticos**
+   - Temperatura média e radiação solar são os maiores influenciadores positivos.
 
-4. **Tendências históricas:**
-   - Análise do aumento recente na área plantada após décadas de declínio.
+4. **Tendências Históricas**
+   - Incremento de 20% na área plantada desde 2010.
 
-5. **Mapa de Calor:**
-   - Representação gráfica das correlações entre variáveis climáticas e produtividade.
+5. **Mapa de Calor**
+   - Correlações entre fatores climáticos e área plantada evidenciadas.
 
 ---
 
 ## **Análise e Conclusão**
 
-- **Melhores períodos:** Primavera e verão se destacam como as melhores estações para o plantio.
-- **Regiões promissoras:** Nordeste e Centro-Oeste lideram em estabilidade climática e produtividade.
-- **Impactos climáticos:** A radiação solar e a temperatura média são os principais fatores influentes.
-- **Práticas de reprodutibilidade:**
-  - Scripts totalmente documentados.
-  - Reuso garantido por meio de pipelines claros.
-  - Visualizações automatizadas para replicação futura.
+- **Períodos Ideais:** Primavera e verão lideram como estações favoráveis.
+- **Regiões Promissoras:** Nordeste se destaca pela estabilidade, enquanto Centro-Oeste apresenta potencial emergente.
+- **Impactos Climáticos:** Temperatura e radiação solar são determinantes para a produtividade.
+- **Boas Práticas de Ciência de Dados:**
+  - Scripts modulados e documentados.
+  - Reuso e reprodutibilidade assegurados por pipelines automatizados.
 
 ---
 
 ## **Trabalhos Futuros**
 
-- Integração de análises econômicas para avaliar a viabilidade do plantio em diferentes regiões.
-- Estudo do impacto das mudanças climáticas sobre as condições de cultivo.
-- Ampliação do escopo para incluir outras culturas agrícolas estratégicas.
+1. Expandir a análise para incluir aspectos econômicos.
+2. Estudar o impacto das mudanças climáticas sobre a produtividade do algodão.
+3. Desenvolver modelos preditivos para outras culturas agrícolas.

@@ -1,4 +1,4 @@
-**/data/raw/
+**/data/raw
 *.csv
 *.cpy
-__pycache__
+*/__pycache__
