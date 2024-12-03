@@ -137,7 +137,7 @@
 
 ---
 
-Esses gráficos, combinados com as tabelas e análises complementares, oferecem um panorama abrangente sobre o plantio de algodão no Brasil, destacando períodos, regiões e condições climáticas ideais. Se desejar adicionar mais detalhes ou expandir os gráficos, posso ajudar a integrar informações adicionais.
+Esses gráficos, combinados com as tabelas e análises complementares, oferecem um panorama abrangente sobre o plantio de algodão no Brasil, destacando períodos, regiões e condições climáticas ideais.
 
 ## **Análise e Conclusão**
 
