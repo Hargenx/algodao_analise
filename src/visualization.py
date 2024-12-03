@@ -6,6 +6,24 @@ import streamlit as st
 import plotly.express as px
 
 
+@st.cache_data
+def prepare_combined_data(cotton_data, weather_data):
+    """
+    Prepara os dados combinados para análise (merge de algodão e clima).
+    """
+    # Renomear colunas
+    cotton_data.rename(columns={"Area_Plantada": "Area_Planted"}, inplace=True)
+
+    # Filtrar dados por anos em comum
+    common_years = set(cotton_data["Ano"]).intersection(weather_data["Ano"])
+    cotton_filtered = cotton_data[cotton_data["Ano"].isin(common_years)]
+    weather_filtered = weather_data[weather_data["Ano"].isin(common_years)]
+
+    # Fazer o merge dos dados
+    combined_data = pd.merge(cotton_filtered, weather_filtered, on="Ano")
+    return combined_data
+
+
 def plot_seasonal_trends(seasonal_data: pd.DataFrame):
     """
     Plota tendências sazonais.
@@ -118,6 +136,34 @@ def add_coordinates_to_regions(regional_data):
     return regional_data
 
 
+def plot_correlation_heatmap(cotton_data, weather_data):
+    """
+    Plota um mapa de calor da correlação entre as variáveis numéricas dos dados combinados.
+    """
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+    try:
+        # Combinar os dados
+        combined_data = cotton_data.merge(
+            weather_data, on=["Ano", "Região/UF"], how="inner"
+        )
+
+        # Selecionar apenas colunas numéricas
+        numeric_data = combined_data.select_dtypes(include=["float64", "int64"])
+
+        # Calcular a matriz de correlação
+        corr_matrix = numeric_data.corr()
+
+        # Plotar o mapa de calor
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
+        plt.title("Mapa de Calor de Correlação")
+        st.pyplot(plt)  # Usar st.pyplot para integrar com o Streamlit
+    except Exception as e:
+        st.error(f"Erro ao gerar mapa de calor: {e}")
+
+
 def plot_climatic_influence(correlations: pd.Series):
     """
     Plota as variáveis climáticas mais influentes.
@@ -143,56 +189,50 @@ def plot_historical_trends(historical_trends: pd.DataFrame):
 
 def plot_scatter(cotton_data: pd.DataFrame, weather_data: pd.DataFrame):
     """
-    Plota scatterplot das variáveis.
+    Plota scatterplot das variáveis: temperatura média vs área plantada.
     """
-    # Confirmar colunas
-    print(cotton_data.columns)
-    print(weather_data.columns)
+    # Renomear colunas, se necessário
+    cotton_data.rename(columns={"Area_Plantada": "Area_Planted"}, inplace=True)
 
-    # Filtrar anos comuns
+    # Verificar colunas nos datasets
+    required_cols = {"Ano", "Area_Planted"}
+    if not required_cols.issubset(cotton_data.columns):
+        raise ValueError(
+            f"Faltando colunas no dataset de algodão: {required_cols - set(cotton_data.columns)}"
+        )
+
+    weather_cols = {"Ano", "temp_avg", "rain_max"}
+    if not weather_cols.issubset(weather_data.columns):
+        raise ValueError(
+            f"Faltando colunas no dataset meteorológico: {weather_cols - set(weather_data.columns)}"
+        )
+
+    # Filtrar dados por anos em comum
     common_years = set(cotton_data["Ano"]).intersection(weather_data["Ano"])
+    cotton_filtered = cotton_data[cotton_data["Ano"].isin(common_years)]
+    weather_filtered = weather_data[weather_data["Ano"].isin(common_years)]
 
-    # Verificar nomes de colunas corretos
-    cotton_filtered = cotton_data[cotton_data["Ano"].isin(common_years)][
-        ["Ano", "Area_Plantada"]
-    ]
-    weather_filtered = weather_data[weather_data["Ano"].isin(common_years)][
-        ["Ano", "temp_avg", "rain_max"]
-    ]
+    # Fazer o merge dos dados
+    combined_data = pd.merge(cotton_filtered, weather_filtered, on="Ano")
 
-    # Realizar o merge
-    combined_data = pd.merge(cotton_filtered, weather_filtered, on="Ano", how="inner")
+    # Amostrar dados para melhorar desempenho (exemplo: 20%)
+    if len(combined_data) > 10000:
+        combined_data = combined_data.sample(frac=0.2, random_state=42)
 
-    # Gerar o gráfico
-    plt.scatter(combined_data["temp_avg"], combined_data["Area_Plantada"])
+    # Gerar scatterplot
+    plt.figure(figsize=(8, 5))
+    plt.scatter(combined_data["temp_avg"], combined_data["Area_Planted"], alpha=0.7)
     plt.title("Dispersão: Temperatura Média vs Área Plantada")
-    plt.xlabel("Temperatura Média (temp_avg)")
-    plt.ylabel("Área Plantada (Area_Plantada)")
-    plt.show()
-
-def plot_correlation_heatmap(cotton_data, weather_data):
-    # Combinar os dados
-    combined_data = cotton_data.merge(
-        weather_data, on=["Ano", "Região/UF"], how="inner"
-    )
-
-    # Selecionar apenas colunas numéricas
-    numeric_data = combined_data.select_dtypes(include=["float64", "int64"])
-
-    # Calcular a matriz de correlação
-    corr_matrix = numeric_data.corr()
-
-    # Plotar o mapa de calor interativo
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-    plt.title("Mapa de Calor de Correlação")
-    plt.show()
+    plt.xlabel("Temperatura Média (°C)")
+    plt.ylabel("Área Plantada (ha)")
+    plt.grid(True)
+    st.pyplot(plt)
 
 
 def plot_interactive_scatter(data):
+    """
+    Gera um gráfico interativo usando Plotly.
+    """
     fig = px.scatter(
         data,
         x="temp_avg",
@@ -201,4 +241,5 @@ def plot_interactive_scatter(data):
         labels={"temp_avg": "Temperatura Média", "Area_Plantada": "Área Plantada"},
     )
     fig.update_traces(marker=dict(size=5, opacity=0.7))
+
     fig.show()

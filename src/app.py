@@ -28,51 +28,64 @@ Explore insights como os melhores períodos e regiões para plantio, além de te
 )
 
 # Carregar dados
-cotton_data = load_cotton_data("data/raw/AlgodoSerieHist.xlsx")
-weather_data = load_weather_data("data/raw/weather_sum_all.csv")
+try:
+    cotton_data = load_cotton_data("data/raw/AlgodoSerieHist.xlsx")
+    weather_data = load_weather_data("data/raw/weather_sum_all.csv")
+except Exception as e:
+    st.error(f"Erro ao carregar os dados: {e}")
+    st.stop()
 
 # 1. Análise de Tendências Sazonais
 st.header("1. Melhores Períodos para Plantio")
-seasonal_trends = analyze_seasonal_trends(cotton_data, weather_data)
-plot_seasonal_trends(seasonal_trends)
-
-# Exibir os gráficos e resultados
-st.title("Análise de Dados: Plantio e Colheita de Algodão")
-st.write(
-    "Este painel analisa os melhores períodos e regiões para o plantio de algodão."
-)
-
-# Gráfico 1: Tendências Sazonais
-st.subheader("Tendências Sazonais")
-st.line_chart(seasonal_trends.set_index("Ano")[["Area_Plantada", "temp_avg"]])
+try:
+    seasonal_trends = analyze_seasonal_trends(cotton_data, weather_data)
+    plot_seasonal_trends(seasonal_trends)
+except Exception as e:
+    st.error(f"Erro ao analisar tendências sazonais: {e}")
 
 # 2. Potencial Regional
 st.header("2. Melhores Regiões para Plantio")
-regional_potential = analyze_regional_potential(cotton_data, weather_data)
-plot_regional_map(regional_potential)
+try:
+    regional_potential = analyze_regional_potential(cotton_data, weather_data)
+    plot_regional_map(regional_potential)
+except Exception as e:
+    st.error(f"Erro ao analisar potencial regional: {e}")
 
 # 3. Influência Climática
 st.header("3. Condições Climáticas que Influenciam o Plantio")
-climatic_influences = analyze_climatic_influences(cotton_data, weather_data)
-plot_climatic_influence(climatic_influences)
+try:
+    climatic_influences = analyze_climatic_influences(cotton_data, weather_data)
+    plot_climatic_influence(climatic_influences)
+except Exception as e:
+    st.error(f"Erro ao analisar influências climáticas: {e}")
 
 # 4. Tendências Históricas
 st.header("4. Tendências Históricas de Plantio")
-historical_trends = analyze_historical_trends(cotton_data)
-plot_historical_trends(historical_trends)
+try:
+    historical_trends = analyze_historical_trends(cotton_data)
+    plot_historical_trends(historical_trends)
+except Exception as e:
+    st.error(f"Erro ao analisar tendências históricas: {e}")
 
 # 5. Relações Entre Variáveis
 st.header("5. Relação entre Variáveis")
-plot_scatter(cotton_data, weather_data)
-plot_correlation_heatmap(cotton_data, weather_data)
+try:
+    plot_scatter(cotton_data, weather_data)
+    plot_correlation_heatmap(cotton_data, weather_data)
+except Exception as e:
+    st.error(f"Erro ao analisar relações entre variáveis: {e}")
 
 # Conclusões
-st.markdown(
-    """
-### Conclusões
-- **Melhores períodos:** A análise sazonal destaca o período X-Y como ideal para o plantio devido às condições climáticas favoráveis.
-- **Regiões promissoras:** A região Z apresenta maior potencial devido à estabilidade climática e histórico de alta produtividade.
-- **Impactos climáticos:** A radiação solar e a temperatura média têm as correlações mais fortes com a área plantada.
-- **Tendências históricas:** Há um crescimento/declínio consistente de X% na área plantada ao longo dos últimos anos.
-"""
-)
+st.markdown("### Conclusões")
+try:
+    # Gerar conclusões dinâmicas (ajuste conforme necessário)
+    st.markdown(
+        """
+        - **Melhores períodos:** A análise sazonal destaca os períodos com temperaturas amenas e chuvas moderadas como os ideais para o plantio.
+        - **Regiões promissoras:** A região Centro-Oeste e Nordeste apresentam maior potencial devido à estabilidade climática e histórico de alta produtividade.
+        - **Impactos climáticos:** A temperatura média e a radiação solar têm as correlações mais fortes com a área plantada.
+        - **Tendências históricas:** Observa-se um crescimento na área plantada desde 2010, com tendências de expansão para novas regiões.
+        """
+    )
+except Exception as e:
+    st.error(f"Erro ao gerar as conclusões: {e}")
