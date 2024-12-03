@@ -83,7 +83,7 @@
 
 ---
 
-## Explicação de cada gráfico exibido:
+## Explicação de cada gráfico exibido
 
 ### 1. **Tendências Sazonais de Temperatura Média**
 
