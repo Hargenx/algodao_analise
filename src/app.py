@@ -70,7 +70,7 @@ except Exception as e:
 # 5. Relações Entre Variáveis
 st.header("5. Relação entre Variáveis")
 try:
-    plot_scatter(cotton_data, weather_data)
+    #plot_scatter(cotton_data, weather_data)
     plot_correlation_heatmap(cotton_data, weather_data)
 except Exception as e:
     st.error(f"Erro ao analisar relações entre variáveis: {e}")

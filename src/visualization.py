@@ -38,7 +38,7 @@ def plot_seasonal_trends(seasonal_data: pd.DataFrame):
 
 def plot_regional_map(regional_data: pd.DataFrame):
     """
-    Plota o mapa das melhores regiões para plantio de algodão.
+    Plota o mapa das melhores regiões para plantio de algodão, focado no Brasil.
     """
     try:
         # Caminho do arquivo shapefile do Natural Earth
@@ -47,8 +47,12 @@ def plot_regional_map(regional_data: pd.DataFrame):
         # Carregar dados geográficos
         world = gpd.read_file(shapefile_path)
 
-        # Adicionar as coordenadas
+        # Adicionar as coordenadas às regiões
         regional_data = add_coordinates_to_regions(regional_data)
+
+        # Verificar se as colunas necessárias existem
+        if "lon" not in regional_data.columns or "lat" not in regional_data.columns:
+            raise ValueError("Faltando colunas 'lon' ou 'lat' no DataFrame.")
 
         # Converter para GeoDataFrame
         gdf = gpd.GeoDataFrame(
@@ -59,21 +63,39 @@ def plot_regional_map(regional_data: pd.DataFrame):
 
         # Criar o mapa
         fig, ax = plt.subplots(figsize=(12, 8))
-        world.boundary.plot(ax=ax, linewidth=1)
-        gdf.plot(ax=ax, color="red", markersize=regional_data["Area_Plantada"] / 10, alpha=0.7)
+
+        # Filtrar o shapefile para mostrar apenas o Brasil
+        brazil = world[world["NAME"] == "Brazil"]
+
+        # Plotar os limites do Brasil
+        brazil.boundary.plot(ax=ax, linewidth=1, color="black")
+
+        # Plotar os pontos no Brasil
+        gdf.plot(
+            ax=ax,
+            color="red",
+            markersize=regional_data["Area_Plantada"] / 100,  # Ajuste do tamanho
+            alpha=0.7,
+        )
 
         # Adicionar rótulos
         for x, y, label in zip(gdf.geometry.x, gdf.geometry.y, gdf["Região/UF"]):
             ax.text(x, y, label, fontsize=8, ha="right")
 
-        plt.title("Melhores Regiões para o Plantio de Algodão", fontsize=16)
+        # Ajustar os limites do mapa para focar no Brasil
+        ax.set_xlim([-75, -32])  # Longitudes do Brasil
+        ax.set_ylim([-35, 5])   # Latitudes do Brasil
+
+        plt.title("Melhores Regiões para o Plantio de Algodão (Foco no Brasil)", fontsize=16)
         plt.xlabel("Longitude")
         plt.ylabel("Latitude")
         plt.grid(True)
-        plt.show()
+        st.pyplot(fig)  # Usar Streamlit para exibir o gráfico
 
     except Exception as e:
-        raise RuntimeError(f"Erro ao plotar o mapa regional: {e}")
+        st.error(f"Erro ao plotar o mapa regional: {e}")
+
+
 
 
 def add_coordinates_to_regions(regional_data):
