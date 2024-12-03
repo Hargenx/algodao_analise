@@ -96,7 +96,3 @@
 - Integração de análises econômicas para avaliar a viabilidade do plantio em diferentes regiões.
 - Estudo do impacto das mudanças climáticas sobre as condições de cultivo.
 - Ampliação do escopo para incluir outras culturas agrícolas estratégicas.
-
----
-
-Se precisar, posso exportar este texto para formatos como `.md` (Markdown) ou `.docx`.
