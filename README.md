@@ -44,11 +44,6 @@ Explorar os dados históricos de plantio e variáveis climáticas para responder
 1. Build e execute o container:
 
    ```bash
-   docker build -t algodao-analysis .
-   docker run -p 8501:8501 algodao-analysis
+   docker build -t algodao-analise .
+   docker run -p 8501:8501 algodao-analise
    ```
-
-## Resultados
-
-- Melhor período: X-Y.
-- Região com maior potencial: Região Z.
