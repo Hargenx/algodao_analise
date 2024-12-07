@@ -42,7 +42,7 @@ def plot_regional_map(regional_data: pd.DataFrame):
     """
     try:
         # Caminho do arquivo shapefile do Natural Earth
-        shapefile_path = "data/geo/ne_10m_admin_0_countries.shp"
+        shapefile_path = "../data/geo/ne_10m_admin_0_countries.shp"
 
         # Carregar dados geográficos
         world = gpd.read_file(shapefile_path)

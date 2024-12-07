@@ -14,6 +14,7 @@ from visualization import (
     plot_scatter,
     plot_correlation_heatmap,
 )
+from provenance import generate_provenance, save_provenance
 
 # Configuração da página
 st.set_page_config(page_title="Análise do Algodão no Brasil", layout="wide")
@@ -29,8 +30,8 @@ Explore insights como os melhores períodos e regiões para plantio, além de te
 
 # Carregar dados
 try:
-    cotton_data = load_cotton_data("data/raw/AlgodoSerieHist.xlsx")
-    weather_data = load_weather_data("data/raw/weather_sum_all.csv")
+    cotton_data = load_cotton_data("../data/raw/AlgodoSerieHist.xlsx")
+    weather_data = load_weather_data("../data/raw/weather_sum_all.csv")
 except Exception as e:
     st.error(f"Erro ao carregar os dados: {e}")
     st.stop()
@@ -61,12 +62,22 @@ if st.sidebar.checkbox("Exibir dados brutos meteorológicos"):
     )
 
 # Tabs para explorar análises
-tabs = st.tabs(["Tendências Sazonais", "Melhores Regiões", "Influência Climática", "Tendências Históricas", "Relações Entre Variáveis", "Experiências", "Conclusões"])
+tabs = st.tabs(
+    [
+        "Tendências Sazonais",
+        "Melhores Regiões",
+        "Influência Climática",
+        "Tendências Históricas",
+        "Relações Entre Variáveis",
+        "Experiências",
+        "Proveniência",
+        "Conclusões",
+    ]
+)
 
 # 1. Tendências Sazonais
 with tabs[0]:
     st.header("Tendências Sazonais")
-    st.markdown("Analisamos as tendências sazonais das temperaturas médias ao longo dos anos.")
     try:
         seasonal_trends = analyze_seasonal_trends(cotton_data, weather_data)
         st.subheader("Gráfico de Tendências Sazonais")
@@ -79,7 +90,6 @@ with tabs[0]:
 # 2. Melhores Regiões
 with tabs[1]:
     st.header("Melhores Regiões para Plantio")
-    st.markdown("Identificamos as regiões com maior potencial para o plantio de algodão.")
     try:
         regional_potential = analyze_regional_potential(cotton_data, weather_data)
         st.subheader("Mapa de Melhores Regiões")
@@ -92,7 +102,6 @@ with tabs[1]:
 # 3. Influência Climática
 with tabs[2]:
     st.header("Influência Climática")
-    st.markdown("Avaliamos o impacto de variáveis climáticas na área plantada de algodão.")
     try:
         climatic_influences = analyze_climatic_influences(cotton_data, weather_data)
         st.subheader("Gráfico de Influência Climática")
@@ -105,7 +114,6 @@ with tabs[2]:
 # 4. Tendências Históricas
 with tabs[3]:
     st.header("Tendências Históricas")
-    st.markdown("Analisamos as mudanças na área plantada ao longo do tempo.")
     try:
         historical_trends = analyze_historical_trends(cotton_data)
         st.subheader("Gráfico de Tendências Históricas")
@@ -118,7 +126,6 @@ with tabs[3]:
 # 5. Relações Entre Variáveis
 with tabs[4]:
     st.header("Relações Entre Variáveis")
-    st.markdown("Exploramos correlações entre variáveis climáticas e a área plantada.")
     try:
         st.subheader("Mapa de Calor de Correlação")
         plot_correlation_heatmap(cotton_data, weather_data)
@@ -128,32 +135,51 @@ with tabs[4]:
 # 6. Experiências
 with tabs[5]:
     st.header("Experiências Interativas")
-    st.markdown("Experimente interagir com os dados e gráficos para obter insights personalizados.")
     if st.checkbox("Exibir Scatterplot Interativo"):
-        st.subheader("Dispersão: Temperatura Média vs Área Plantada")
         try:
             plot_scatter(cotton_data, weather_data)
         except Exception as e:
             st.error(f"Erro ao gerar scatterplot: {e}")
 
     if st.checkbox("Comparar áreas plantadas por região"):
-        st.subheader("Comparação de Áreas Plantadas")
-        region_comparison = cotton_data.groupby("Região/UF")["Area_Plantada"].mean().sort_values(ascending=False)
+        region_comparison = (
+            cotton_data.groupby("Região/UF")["Area_Plantada"]
+            .mean()
+            .sort_values(ascending=False)
+        )
         st.bar_chart(region_comparison)
 
-# 7. Conclusões
-with tabs[6]:
+# 7. Proveniência
+# Geração de Proveniência
+prov_doc = generate_provenance()
+
+# Aba de Proveniência
+with tabs[6]:  # Aba "Proveniência"
+    st.header("Proveniência do Projeto")
+    prov_json = prov_doc.serialize(indent=2)
+    st.subheader("Tabela de Proveniência")
+    st.json(prov_json)
+
+    # Botão para Download
+    st.download_button(
+        label="Baixar Proveniência JSON",
+        data=prov_json,
+        file_name="provenance.json",
+        mime="application/json",
+    )
+
+    # Salvar Proveniência
+    save_provenance(prov_doc, "outputs/provenance.json")
+
+
+# 8. Conclusões
+with tabs[7]:
     st.header("Conclusões")
     st.markdown(
         """
         ### Insights Gerais
-        - **Melhores períodos:** A análise sazonal destaca os períodos com temperaturas amenas e chuvas moderadas como os ideais para o plantio.
-        - **Regiões promissoras:** A região Centro-Oeste e Nordeste apresentam maior potencial devido à estabilidade climática e histórico de alta produtividade.
-        - **Impactos climáticos:** A temperatura média e a radiação solar têm as correlações mais fortes com a área plantada.
-        - **Tendências históricas:** Observa-se um crescimento na área plantada desde 2010, com tendências de expansão para novas regiões.
+        - **Melhores períodos:** Primavera e verão se destacam como os melhores períodos para plantio.
+        - **Regiões promissoras:** Nordeste e Centro-Oeste apresentam maior potencial.
+        - **Impactos climáticos:** A radiação solar e a temperatura média são os fatores mais influentes.
         """
     )
-
-# Exportação de dados
-if st.sidebar.button("Exportar Conclusões"):
-    st.sidebar.write("Função de exportação de relatório ainda em desenvolvimento.")
