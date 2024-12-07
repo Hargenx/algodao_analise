@@ -11,175 +11,146 @@ from visualization import (
     plot_regional_map,
     plot_climatic_influence,
     plot_historical_trends,
-    plot_scatter,
     plot_correlation_heatmap,
 )
 from provenance import generate_provenance, save_provenance
 
-# Configuração da página
-st.set_page_config(page_title="Análise do Algodão no Brasil", layout="wide")
+# Configuração inicial da página
+st.set_page_config(page_title="Análise de Algodão no Brasil", layout="wide")
 
 # Título e introdução
-st.title("Análise de Dados: Plantio e Colheita de Algodão")
+st.title("Análise de Dados de Plantio e Colheita de Algodão no Brasil")
 st.markdown(
     """
-Este painel interativo analisa dados históricos de plantio de algodão e condições climáticas no Brasil. 
-Explore insights como os melhores períodos e regiões para plantio, além de tendências históricas e impactos climáticos.
-"""
+    Este painel interativo oferece insights sobre dados históricos de algodão e condições climáticas no Brasil. 
+    Descubra os melhores períodos para plantio, regiões promissoras, tendências históricas e muito mais.
+    """
 )
 
 # Carregar dados
+st.sidebar.header("Carregar Dados")
 try:
-    cotton_data = load_cotton_data("../data/raw/AlgodoSerieHist.xlsx")
-    weather_data = load_weather_data("../data/raw/weather_sum_all.csv")
+    cotton_data_path = st.sidebar.text_input(
+        "Caminho para o dataset de algodão:", "../data/raw/AlgodoSerieHist.xlsx"
+    )
+    weather_data_path = st.sidebar.text_input(
+        "Caminho para o dataset meteorológico:", "../data/raw/weather_sum_all.csv"
+    )
+
+    cotton_data = load_cotton_data(cotton_data_path)
+    weather_data = load_weather_data(weather_data_path)
+
+    st.sidebar.success("Dados carregados com sucesso!")
 except Exception as e:
-    st.error(f"Erro ao carregar os dados: {e}")
+    st.sidebar.error(f"Erro ao carregar dados: {e}")
     st.stop()
 
-# Sidebar para explorar dados
-st.sidebar.title("Exploração dos Dados")
+# Sidebar para exibir dados brutos
 if st.sidebar.checkbox("Exibir dados brutos de algodão"):
     st.subheader("Dados Brutos de Algodão")
     st.write(cotton_data.head(20))
-    st.markdown(
-        """
-        **Descrição:**
-        - `Região/UF`: Região ou estado.
-        - `Ano`: Ano de registro.
-        - `Area_Plantada`: Área plantada em hectares.
-        """
-    )
-if st.sidebar.checkbox("Exibir dados brutos meteorológicos"):
+
+if st.sidebar.checkbox("Exibir dados meteorológicos brutos"):
     st.subheader("Dados Brutos Meteorológicos")
     st.write(weather_data.head(20))
-    st.markdown(
-        """
-        **Descrição:**
-        - `temp_avg`: Temperatura média diária (°C).
-        - `rain_max`: Precipitação máxima (mm).
-        - `rad_max`: Radiação máxima (kJ/m²).
-        """
-    )
 
-# Tabs para explorar análises
+# Tabs principais
 tabs = st.tabs(
     [
         "Tendências Sazonais",
         "Melhores Regiões",
         "Influência Climática",
         "Tendências Históricas",
-        "Relações Entre Variáveis",
-        "Experiências",
+        "Correlação de Variáveis",
         "Proveniência",
         "Conclusões",
     ]
 )
 
-# 1. Tendências Sazonais
+# Aba: Tendências Sazonais
 with tabs[0]:
     st.header("Tendências Sazonais")
     try:
         seasonal_trends = analyze_seasonal_trends(cotton_data, weather_data)
-        st.subheader("Gráfico de Tendências Sazonais")
+        st.subheader("Gráfico")
         plot_seasonal_trends(seasonal_trends)
-        st.subheader("Tabela de Tendências Sazonais")
-        st.write(seasonal_trends.head(10))
+        st.subheader("Dados de Tendências Sazonais")
+        st.write(seasonal_trends)
     except Exception as e:
         st.error(f"Erro ao analisar tendências sazonais: {e}")
 
-# 2. Melhores Regiões
+# Aba: Melhores Regiões
 with tabs[1]:
     st.header("Melhores Regiões para Plantio")
     try:
         regional_potential = analyze_regional_potential(cotton_data, weather_data)
-        st.subheader("Mapa de Melhores Regiões")
+        st.subheader("Mapa")
         plot_regional_map(regional_potential)
-        st.subheader("Tabela de Regiões")
+        st.subheader("Detalhes por Região")
         st.write(regional_potential)
     except Exception as e:
-        st.error(f"Erro ao analisar potencial regional: {e}")
+        st.error(f"Erro ao analisar regiões: {e}")
 
-# 3. Influência Climática
+# Aba: Influência Climática
 with tabs[2]:
     st.header("Influência Climática")
     try:
         climatic_influences = analyze_climatic_influences(cotton_data, weather_data)
-        st.subheader("Gráfico de Influência Climática")
+        st.subheader("Gráfico")
         plot_climatic_influence(climatic_influences)
-        st.subheader("Tabela de Correlações Climáticas")
+        st.subheader("Detalhes da Influência Climática")
         st.write(climatic_influences)
     except Exception as e:
         st.error(f"Erro ao analisar influências climáticas: {e}")
 
-# 4. Tendências Históricas
+# Aba: Tendências Históricas
 with tabs[3]:
     st.header("Tendências Históricas")
     try:
         historical_trends = analyze_historical_trends(cotton_data)
         st.subheader("Gráfico de Tendências Históricas")
         plot_historical_trends(historical_trends)
-        st.subheader("Tabela de Tendências Históricas")
-        st.write(historical_trends.head(10))
+        st.subheader("Dados Históricos")
+        st.write(historical_trends)
     except Exception as e:
         st.error(f"Erro ao analisar tendências históricas: {e}")
 
-# 5. Relações Entre Variáveis
+# Aba: Correlação de Variáveis
 with tabs[4]:
-    st.header("Relações Entre Variáveis")
+    st.header("Mapa de Correlação")
     try:
-        st.subheader("Mapa de Calor de Correlação")
+        st.subheader("Mapa de Calor")
         plot_correlation_heatmap(cotton_data, weather_data)
     except Exception as e:
-        st.error(f"Erro ao analisar relações entre variáveis: {e}")
+        st.error(f"Erro ao gerar mapa de correlação: {e}")
 
-# 6. Experiências
+# Aba: Proveniência
 with tabs[5]:
-    st.header("Experiências Interativas")
-    if st.checkbox("Exibir Scatterplot Interativo"):
-        try:
-            plot_scatter(cotton_data, weather_data)
-        except Exception as e:
-            st.error(f"Erro ao gerar scatterplot: {e}")
-
-    if st.checkbox("Comparar áreas plantadas por região"):
-        region_comparison = (
-            cotton_data.groupby("Região/UF")["Area_Plantada"]
-            .mean()
-            .sort_values(ascending=False)
-        )
-        st.bar_chart(region_comparison)
-
-# 7. Proveniência
-# Geração de Proveniência
-prov_doc = generate_provenance()
-
-# Aba de Proveniência
-with tabs[6]:  # Aba "Proveniência"
     st.header("Proveniência do Projeto")
-    prov_json = prov_doc.serialize(indent=2)
-    st.subheader("Tabela de Proveniência")
-    st.json(prov_json)
+    try:
+        prov_doc = generate_provenance()
+        prov_json = prov_doc.serialize(indent=2)
 
-    # Botão para Download
-    st.download_button(
-        label="Baixar Proveniência JSON",
-        data=prov_json,
-        file_name="provenance.json",
-        mime="application/json",
-    )
+        st.subheader("Proveniência JSON")
+        st.json(prov_json)
 
-    # Salvar Proveniência
-    save_provenance(prov_doc, "outputs/provenance.json")
+        st.download_button(
+            label="Baixar Proveniência (JSON)",
+            data=prov_json,
+            file_name="provenance.json",
+            mime="application/json",
+        )
+        save_provenance(prov_doc, "outputs/provenance.json")
+    except Exception as e:
+        st.error(f"Erro ao gerar proveniência: {e}")
 
-
-# 8. Conclusões
-with tabs[7]:
-    st.header("Conclusões")
+# Aba: Conclusões
+with tabs[6]:
+    st.header("Conclusões e Insights")
     st.markdown(
         """
-        ### Insights Gerais
-        - **Melhores períodos:** Primavera e verão se destacam como os melhores períodos para plantio.
-        - **Regiões promissoras:** Nordeste e Centro-Oeste apresentam maior potencial.
-        - **Impactos climáticos:** A radiação solar e a temperatura média são os fatores mais influentes.
+        - **Melhores períodos para plantio:** Primavera e verão destacam-se devido às condições favoráveis.
+        - **Regiões com maior potencial:** Nordeste e Centro-Oeste lideram devido à combinação de fatores climáticos e estruturais.
+        - **Impactos climáticos mais significativos:** Temperatura média e precipitação apresentam as maiores correlações com o rendimento.
         """
     )
