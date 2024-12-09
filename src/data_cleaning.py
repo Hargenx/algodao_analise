@@ -1,6 +1,4 @@
-
 import pandas as pd
-import logging
 
 
 def load_cotton_data(filepath: str) -> pd.DataFrame:
@@ -8,44 +6,31 @@ def load_cotton_data(filepath: str) -> pd.DataFrame:
     Carrega e processa os dados de algodão do arquivo Excel.
     """
     try:
-        # Carregar o arquivo Excel
         data = pd.read_excel(filepath, engine="openpyxl", skiprows=4, header=None)
-
-        # Exibir a estrutura inicial do dataframe para diagnóstico
-        print("Estrutura inicial do dataset de algodão:")
-        print(data.head())
-
-        # Detectar automaticamente o número de colunas com dados
         col_count = len(data.columns)
 
-        # Criar os nomes das colunas dinamicamente
+        # Criar nomes de colunas dinamicamente
         col_names = ["Região/UF"] + [
             str(year) for year in range(1976, 1976 + col_count - 1)
         ]
-        data.columns = col_names[:col_count]  # Ajustar o número de colunas
+        data.columns = col_names[:col_count]
 
-        # Excluir totais gerais ou linhas de rodapé não relevantes
+        # Excluir totais e valores agregados
         data = data[~data["Região/UF"].str.contains("BRASIL|NORTE/NORDESTE", na=False)]
 
-        # Transformar a tabela em formato longo (melt) para análise
+        # Transformar para formato longo
         data_long = data.melt(
             id_vars=["Região/UF"], var_name="Ano", value_name="Area_Plantada"
         )
-
-        # Remover valores nulos ou não numéricos
-        data_long = data_long.dropna(subset=["Area_Plantada"])
         data_long["Area_Plantada"] = pd.to_numeric(
             data_long["Area_Plantada"], errors="coerce"
         )
-
-        # Garantir que "Ano" seja tratado como um inteiro
-        data_long["Ano"] = data_long["Ano"].astype(int)
-
-        logging.info(
-            f"Dados de algodão carregados: {data_long.shape[0]} linhas processadas."
+        data_long["Ano"] = pd.to_numeric(
+            data_long["Ano"].str.extract(r"(\d{4})")[0], errors="coerce"
         )
-        print("Pré-visualização dos dados carregados:")
-        print(data_long.head())
+
+        # Remover valores ausentes
+        data_long.dropna(subset=["Ano", "Area_Plantada"], inplace=True)
 
         return data_long
     except Exception as e:

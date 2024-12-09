@@ -1,5 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+import numpy as np
+import streamlit as st
 
 
 def analyze_seasonal_trends(
@@ -108,6 +112,77 @@ def analyze_historical_trends(cotton_data):
     plt.ylabel("Área Plantada (em mil hectares)")
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    st.pyplot(plt)
+    plt.close()
 
     return historical_trends
+
+
+def predict_planted_area(cotton_data, years_to_consider=10, forecast_until=2030):
+    try:
+        cotton_data = cotton_data.rename(columns={"Area_Plantada": "Area_Planted"})
+        recent_years = sorted(cotton_data["Ano"].unique())[-years_to_consider:]
+        filtered_data = cotton_data[cotton_data["Ano"].isin(recent_years)].copy()
+
+        # Validar dados
+        if filtered_data.empty or filtered_data["Area_Planted"].isnull().all():
+            raise ValueError("Dados insuficientes para previsão.")
+
+        X = filtered_data["Ano"].values.reshape(-1, 1)
+        y = filtered_data["Area_Planted"].values
+
+        # Regressão polinomial
+        poly = PolynomialFeatures(degree=2)  # Ajuste o grau conforme necessário
+        X_poly = poly.fit_transform(X)
+        model = LinearRegression()
+        model.fit(X_poly, y)
+
+        # Prever anos futuros
+        future_years = np.arange(X[-1][0] + 1, forecast_until + 1).reshape(-1, 1)
+        future_predictions = model.predict(poly.transform(future_years))
+
+        # Criar DataFrame de previsões
+        predictions = pd.DataFrame(
+            {
+                "Ano": future_years.flatten(),
+                "Area_Planted_Predicted": future_predictions,
+            }
+        )
+
+        return predictions
+    except Exception as e:
+        raise RuntimeError(f"Erro ao prever área plantada: {e}")
+
+
+def preprocess_data(file_path: str) -> pd.DataFrame:
+    """
+    Pré-processa os dados de área plantada de algodão.
+    """
+    try:
+        # Carregar os dados
+        data = pd.read_csv(file_path)
+
+        # Transformar colunas de formato largo para formato longo
+        data_long = data.melt(
+            id_vars=["REGIÃO/UF"], var_name="Ano", value_name="Area_Plantada"
+        )
+
+        # Remover separadores de milhar e transformar decimais
+        data_long["Area_Plantada"] = (
+            data_long["Area_Plantada"]
+            .str.replace(",", ".", regex=False)
+            .str.replace(".", "", regex=False)
+            .astype(float)
+        )
+
+        # Converter coluna 'Ano' para numérico
+        data_long["Ano"] = pd.to_numeric(
+            data_long["Ano"].str.extract(r"(\d{4})")[0], errors="coerce"
+        )
+
+        # Remover valores ausentes
+        data_long = data_long.dropna(subset=["Ano", "Area_Plantada"])
+
+        return data_long
+    except Exception as e:
+        raise RuntimeError(f"Erro ao pré-processar dados: {e}")

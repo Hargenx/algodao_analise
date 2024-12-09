@@ -1,10 +1,13 @@
 import streamlit as st
+import pandas as pd
+import os
 from data_cleaning import load_cotton_data, load_weather_data
 from analysis import (
     analyze_seasonal_trends,
     analyze_regional_potential,
     analyze_climatic_influences,
     analyze_historical_trends,
+    predict_planted_area,
 )
 from visualization import (
     plot_seasonal_trends,
@@ -12,8 +15,14 @@ from visualization import (
     plot_climatic_influence,
     plot_historical_trends,
     plot_correlation_heatmap,
+    plot_historical_trends_with_prediction,
 )
-from provenance import generate_provenance, save_provenance
+
+# Diretório base ajustado
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+GEO_DIR = os.path.join(BASE_DIR, "data", "geo")
+
 
 # Configuração inicial da página
 st.set_page_config(page_title="Análise de Algodão no Brasil", layout="wide")
@@ -30,12 +39,8 @@ st.markdown(
 # Carregar dados
 st.sidebar.header("Carregar Dados")
 try:
-    cotton_data_path = st.sidebar.text_input(
-        "Caminho para o dataset de algodão:", "../data/raw/AlgodoSerieHist.xlsx"
-    )
-    weather_data_path = st.sidebar.text_input(
-        "Caminho para o dataset meteorológico:", "../data/raw/weather_sum_all.csv"
-    )
+    cotton_data_path = os.path.join(DATA_DIR, "AlgodoSerieHist.xlsx")
+    weather_data_path = os.path.join(DATA_DIR, "weather_sum_all.csv")
 
     cotton_data = load_cotton_data(cotton_data_path)
     weather_data = load_weather_data(weather_data_path)
@@ -62,7 +67,7 @@ tabs = st.tabs(
         "Influência Climática",
         "Tendências Históricas",
         "Correlação de Variáveis",
-        "Proveniência",
+        "Previsão de Area Plantada",
         "Conclusões",
     ]
 )
@@ -85,7 +90,11 @@ with tabs[1]:
     try:
         regional_potential = analyze_regional_potential(cotton_data, weather_data)
         st.subheader("Mapa")
-        plot_regional_map(regional_potential)
+
+        # Adicione o caminho correto para o shapefile
+        shapefile_path = "./data/geo/br_states.json"
+        plot_regional_map(regional_potential, shapefile_path)
+
         st.subheader("Detalhes por Região")
         st.write(regional_potential)
     except Exception as e:
@@ -124,33 +133,128 @@ with tabs[4]:
     except Exception as e:
         st.error(f"Erro ao gerar mapa de correlação: {e}")
 
-# Aba: Proveniência
+
+# Aba: Previsão
 with tabs[5]:
-    st.header("Proveniência do Projeto")
+    st.header("Previsão da Área Plantada")
+
     try:
-        prov_doc = generate_provenance()
-        prov_json = prov_doc.serialize(indent=2)
-
-        st.subheader("Proveniência JSON")
-        st.json(prov_json)
-
-        st.download_button(
-            label="Baixar Proveniência (JSON)",
-            data=prov_json,
-            file_name="provenance.json",
-            mime="application/json",
+        # Entrada para selecionar o número de anos a considerar
+        years_to_consider = st.number_input(
+            "Anos para considerar na previsão:",
+            min_value=2,
+            max_value=len(cotton_data["Ano"].unique()),
+            value=10,
+            step=1,
         )
-        save_provenance(prov_doc, "outputs/provenance.json")
+        # Análise de tendências históricas
+
+        if historical_trends.empty:
+            st.error("Dados históricos de área plantada não estão disponíveis.")
+        else:
+            # Limpar e validar dados históricos
+            historical_trends["Ano"] = pd.to_numeric(
+                historical_trends["Ano"], errors="coerce"
+            )
+            historical_trends["Area_Planted"] = pd.to_numeric(
+                historical_trends["Area_Planted"], errors="coerce"
+            )
+            historical_trends = historical_trends.dropna(subset=["Ano", "Area_Planted"])
+
+            # Filtrar os anos recentes
+            recent_years = sorted(historical_trends["Ano"].unique())[
+                -years_to_consider:
+            ]
+            filtered_historical_trends = historical_trends[
+                historical_trends["Ano"].isin(recent_years)
+            ]
+            st.write("Dados Históricos Filtrados:", filtered_historical_trends)
+
+            st.subheader("Previsão de Área Plantada")
+
+            if len(filtered_historical_trends) < 2:
+                st.warning(
+                    "Dados insuficientes para previsão. É necessário pelo menos dois anos de dados históricos."
+                )
+            else:
+                try:
+                    # Previsão com dados filtrados
+                    predicted_areas = predict_planted_area(
+                        filtered_historical_trends, years_to_consider=years_to_consider
+                    )
+
+                    if predicted_areas.empty:
+                        st.warning(
+                            "Não foi possível gerar previsões para a área plantada."
+                        )
+                    else:
+                        st.write("Previsão de Área Plantada (ha):")
+                        st.write(predicted_areas)
+
+                        # Gráfico com histórico e previsão
+                        plot_historical_trends_with_prediction(
+                            filtered_historical_trends, predicted_areas
+                        )
+
+                        st.success("Análise e previsão concluídas com sucesso!")
+                except RuntimeError as prediction_error:
+                    st.error(f"Erro ao prever área plantada: {prediction_error}")
+
     except Exception as e:
-        st.error(f"Erro ao gerar proveniência: {e}")
+        st.error(f"Erro ao analisar tendências históricas com previsão: {e}")
+
 
 # Aba: Conclusões
 with tabs[6]:
     st.header("Conclusões e Insights")
     st.markdown(
         """
-        - **Melhores períodos para plantio:** Primavera e verão destacam-se devido às condições favoráveis.
-        - **Regiões com maior potencial:** Nordeste e Centro-Oeste lideram devido à combinação de fatores climáticos e estruturais.
-        - **Impactos climáticos mais significativos:** Temperatura média e precipitação apresentam as maiores correlações com o rendimento.
+        ### **1. Melhores períodos para plantio**
+        - As análises indicam que as **estações Primavera e Verão** são ideais para o plantio de algodão, devido a:
+          - **Temperaturas médias elevadas** e consistentes, essenciais para o desenvolvimento das plantas.
+          - **Radiação solar intensa**, que favorece o crescimento.
+          - **Precipitação moderada**, evitando o excesso de umidade no solo.
+        - **Recomendações**:
+          - Planejar o plantio alinhado com essas estações para maximizar a produtividade.
+          - Monitorar as condições climáticas durante essas épocas para ajustar práticas agrícolas.
+
+        ### **2. Regiões com maior potencial**
+        - As **regiões Nordeste e Centro-Oeste** lideram como áreas promissoras para o cultivo de algodão:
+          - **Nordeste**:
+            - Destaque para estados como **Bahia**, que apresenta infraestrutura e tecnologia avançadas.
+            - Benefícios climáticos como alta radiação solar e precipitação controlada.
+          - **Centro-Oeste**:
+            - Regiões com ampla disponibilidade de terras cultiváveis e tecnologia mecanizada.
+            - Expansão recente em estados como **Mato Grosso**, que apresenta forte tendência de crescimento na área plantada.
+        - **Recomendações**:
+          - Incentivar políticas públicas de suporte à infraestrutura agrícola nessas regiões.
+          - Investir em pesquisas locais para maximizar o potencial produtivo.
+
+        ### **3. Impactos climáticos mais significativos**
+        - Variáveis climáticas com maior correlação com a área plantada:
+          - **Temperatura média (0,46)**: Variável mais influente, indicando que climas estáveis e quentes são essenciais.
+          - **Temperatura máxima (0,59)**: Sugere a importância de dias quentes para o crescimento ideal.
+          - **Velocidade média do vento (-0,66)**: Vento excessivo é prejudicial, afetando a estabilidade das plantações.
+          - **Precipitação máxima (0,35)**: Influência moderada, com o equilíbrio sendo crucial.
+        - **Recomendações**:
+          - Implementar sistemas de monitoramento climático em tempo real.
+          - Adotar práticas agrícolas que minimizem o impacto de ventos fortes, como o uso de barreiras vegetativas.
+
+        ### **4. Tendências históricas**
+        - O crescimento histórico da área plantada reflete:
+          - **Expansão da área cultivável no Brasil**: Recordes recentes em estados como Bahia e Mato Grosso.
+          - **Adoção de tecnologias agrícolas modernas**, como sementes geneticamente modificadas e irrigação eficiente.
+          - **Aumento no valor de mercado do algodão**, incentivando investimentos.
+        - **Recomendações**:
+          - Continuar investindo em tecnologias agrícolas que melhorem a eficiência e sustentabilidade.
+          - Estimular o uso de práticas que protejam o solo e evitem degradação a longo prazo.
+
+        ### **5. Previsões**
+        - Com base nos modelos preditivos:
+          - Estima-se uma **expansão moderada** da área plantada até 2030.
+          - O crescimento dependerá de fatores como mudanças climáticas, disponibilidade de recursos e incentivos governamentais.
+        - **Recomendações**:
+          - Realizar planejamentos estratégicos considerando projeções climáticas.
+          - Promover programas de capacitação técnica para agricultores.
         """
     )

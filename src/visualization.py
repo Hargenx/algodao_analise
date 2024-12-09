@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import geopandas as gpd
 import streamlit as st
+import geopandas as gpd
 import plotly.express as px
-
+import folium
+from streamlit_folium import st_folium
 
 @st.cache_data
 def prepare_combined_data(cotton_data, weather_data):
@@ -36,66 +37,50 @@ def plot_seasonal_trends(seasonal_data: pd.DataFrame):
     st.pyplot(plt)
 
 
-def plot_regional_map(regional_data: pd.DataFrame):
+def plot_regional_map(regional_data, geojson_path):
     """
     Plota o mapa das melhores regiões para plantio de algodão, focado no Brasil.
     """
     try:
-        # Caminho do arquivo shapefile do Natural Earth
-        shapefile_path = "../data/geo/ne_10m_admin_0_countries.shp"
+        # Renomear colunas no regional_data para corresponder ao GeoJSON
+        if "Região/UF" in regional_data.columns:
+            regional_data = regional_data.rename(columns={"Região/UF": "id"})
 
-        # Carregar dados geográficos
-        world = gpd.read_file(shapefile_path)
+        # Verificar as colunas após o rename
+        print("Colunas no regional_data após ajuste:", regional_data.columns)
 
-        # Adicionar as coordenadas às regiões
-        regional_data = add_coordinates_to_regions(regional_data)
+        # Carregar o GeoJSON
+        brazil_geo = gpd.read_file(geojson_path)
+        print("Colunas no GeoJSON:", brazil_geo.columns)
 
-        # Verificar se as colunas necessárias existem
-        if "lon" not in regional_data.columns or "lat" not in regional_data.columns:
-            raise ValueError("Faltando colunas 'lon' ou 'lat' no DataFrame.")
+        # Verificar se as chaves do merge correspondem
+        print("IDs no GeoJSON:", brazil_geo["id"].unique())
+        print("IDs no regional_data:", regional_data["id"].unique())
 
-        # Converter para GeoDataFrame
-        gdf = gpd.GeoDataFrame(
-            regional_data,
-            geometry=gpd.points_from_xy(regional_data["lon"], regional_data["lat"]),
-            crs="EPSG:4326",
-        )
+        # Criar o mapa centrado no Brasil
+        m = folium.Map(location=[-14.235, -51.9253], zoom_start=4)
 
-        # Criar o mapa
-        fig, ax = plt.subplots(figsize=(12, 8))
+        # Adicionar o mapa coroplético
+        folium.Choropleth(
+            geo_data=geojson_path,
+            name="choropleth",
+            data=regional_data,
+            columns=["id", "Area_Plantada"],  # Usar a coluna 'id' e 'Area_Plantada'
+            key_on="feature.id",  # Ajustar para usar o campo 'id' do GeoJSON
+            fill_color="YlGn",
+            fill_opacity=0.7,
+            line_opacity=0.2,
+            legend_name="Área Plantada (ha)",
+        ).add_to(m)
 
-        # Filtrar o shapefile para mostrar apenas o Brasil
-        brazil = world[world["NAME"] == "Brazil"]
+        # Adicionar controle de camadas
+        folium.LayerControl().add_to(m)
 
-        # Plotar os limites do Brasil
-        brazil.boundary.plot(ax=ax, linewidth=1, color="black")
-
-        # Plotar os pontos no Brasil
-        gdf.plot(
-            ax=ax,
-            color="red",
-            markersize=regional_data["Area_Plantada"] / 100,  # Ajuste do tamanho
-            alpha=0.7,
-        )
-
-        # Adicionar rótulos
-        for x, y, label in zip(gdf.geometry.x, gdf.geometry.y, gdf["Região/UF"]):
-            ax.text(x, y, label, fontsize=8, ha="right")
-
-        # Ajustar os limites do mapa para focar no Brasil
-        ax.set_xlim([-75, -32])  # Longitudes do Brasil
-        ax.set_ylim([-35, 5])   # Latitudes do Brasil
-
-        plt.title("Melhores Regiões para o Plantio de Algodão (Foco no Brasil)", fontsize=16)
-        plt.xlabel("Longitude")
-        plt.ylabel("Latitude")
-        plt.grid(True)
-        st.pyplot(fig)  # Usar Streamlit para exibir o gráfico
+        # Exibir o mapa no Streamlit
+        st_folium(m, width=800, height=600)
 
     except Exception as e:
-        st.error(f"Erro ao plotar o mapa regional: {e}")
-
-
+        st.error(f"Erro ao plotar o mapa interativo: {e}")
 
 
 def add_coordinates_to_regions(regional_data):
@@ -160,11 +145,8 @@ def add_coordinates_to_regions(regional_data):
 
 def plot_correlation_heatmap(cotton_data, weather_data):
     """
-    Plota um mapa de calor da correlação entre as variáveis numéricas dos dados combinados.
+    Plota um mapa de calor de correlação com melhorias de nomeclatura e design.
     """
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-
     try:
         # Combinar os dados
         combined_data = cotton_data.merge(
@@ -177,23 +159,84 @@ def plot_correlation_heatmap(cotton_data, weather_data):
         # Calcular a matriz de correlação
         corr_matrix = numeric_data.corr()
 
+        # Renomear variáveis para maior clareza
+        rename_dict = {
+            "temp_max": "Temperatura Máxima (°C)",
+            "temp_avg": "Temperatura Média (°C)",
+            "temp_min": "Temperatura Mínima (°C)",
+            "hum_max": "Umidade Máxima (%)",
+            "hum_min": "Umidade Mínima (%)",
+            "rain_max": "Precipitação Máxima (mm)",
+            "rad_max": "Radiação Máxima (W/m²)",
+            "wind_avg": "Velocidade Média do Vento (m/s)",
+            "wind_max": "Velocidade Máxima do Vento (m/s)",
+            "Area_Plantada": "Área Plantada (ha)",
+            "Ano": "Ano",
+        }
+        corr_matrix = corr_matrix.rename(index=rename_dict, columns=rename_dict)
+
         # Plotar o mapa de calor
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-        plt.title("Mapa de Calor de Correlação")
-        st.pyplot(plt)  # Usar st.pyplot para integrar com o Streamlit
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(
+            corr_matrix,
+            annot=True,  # Exibe os valores nas células
+            fmt=".2f",
+            cmap="coolwarm",  # Paleta de cores
+            cbar=True,
+            square=True,  # Células quadradas
+            linewidths=0.5,
+        )
+        plt.title(
+            "Mapa de Calor da Correlação entre Variáveis Climáticas e Área Plantada",
+            fontsize=14,
+        )
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+
+        # Exibir o gráfico no Streamlit
+        st.pyplot(plt)
+        plt.close()
     except Exception as e:
         st.error(f"Erro ao gerar mapa de calor: {e}")
 
 
 def plot_climatic_influence(correlations: pd.Series):
     """
-    Plota as variáveis climáticas mais influentes.
+    Plota as variáveis climáticas mais influentes com nomes mais descritivos.
     """
-    plt.figure(figsize=(8, 5))
-    sns.barplot(x=correlations.values, y=correlations.index)
-    plt.title("Influência de Variáveis Climáticas na Área Plantada")
+    # Renomear variáveis para facilitar a leitura
+    rename_dict = {
+        "temp_max": "Temperatura Máxima (°C)",
+        "temp_avg": "Temperatura Média (°C)",
+        "temp_min": "Temperatura Mínima (°C)",
+        "hum_max": "Umidade Máxima (%)",
+        "rain_max": "Precipitação Máxima (mm)",
+        "rad_max": "Radiação Máxima (W/m²)",
+        "wind_avg": "Velocidade Média do Vento (m/s)",
+        "wind_max": "Velocidade Máxima do Vento (m/s)",
+        "hum_min": "Umidade Mínima (%)",
+        "Ano": "Ano",
+        "Area_Plantada": "Área Plantada",
+    }
+
+    correlations = correlations.drop(
+        "Area_Plantada", errors="ignore"
+    )  # Remover redundância
+    correlations = correlations.rename(index=rename_dict)  # Renomear variáveis
+    correlations = correlations.sort_values(ascending=False)  # Ordenar por correlação
+
+    # Criar o gráfico
+    plt.figure(figsize=(10, 6))
+    sns.barplot(
+        x=correlations.values, y=correlations.index, hue=correlations.index, dodge=False
+    )
+    plt.title("Correlação entre Variáveis Climáticas e Área Plantada de Algodão")
     plt.xlabel("Correlação")
+    plt.ylabel("Variáveis Climáticas")
+    plt.grid(axis="x", linestyle="--", alpha=0.7)
+    plt.tight_layout()
+
+    # Exibir o gráfico no Streamlit
     st.pyplot(plt)
 
 
@@ -264,4 +307,29 @@ def plot_interactive_scatter(data):
     )
     fig.update_traces(marker=dict(size=5, opacity=0.7))
 
-    fig.show()
+    st.pyplot(plt)
+
+
+def plot_historical_trends_with_prediction(historical_trends, predicted_areas):
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        historical_trends["Ano"],
+        historical_trends["Area_Planted"],
+        label="Histórico",
+        marker="o",
+        color="blue",
+    )
+    plt.plot(
+        predicted_areas["Ano"],
+        predicted_areas["Area_Planted_Predicted"],
+        label="Previsão",
+        linestyle="--",
+        color="orange",
+    )
+    plt.title("Tendências Históricas e Previsão da Área Plantada")
+    plt.xlabel("Ano")
+    plt.ylabel("Área Plantada (ha)")
+    plt.legend()
+    plt.grid()
+    st.pyplot(plt)
+    plt.close()
